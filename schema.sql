@@ -9,6 +9,7 @@ CREATE TABLE profiles (
   role text CHECK (role IN ('admin', 'waiter', 'kitchen', 'desk', 'display')),
   full_name text,
   avatar_url text,
+  push_token text,
   created_at timestamptz DEFAULT now()
 );
 

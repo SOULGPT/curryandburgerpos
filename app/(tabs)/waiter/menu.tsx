@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Theme } from '../../../constants/Theme';
 import { supabase } from '../../../lib/supabase';
@@ -10,6 +11,37 @@ import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 
 const CATEGORIES = ['burger', 'curry', 'wraps', 'sides', 'drinks', 'desserts'];
+
+function MenuItemCard({ item, addItem }: { item: MenuItem; addItem: (item: MenuItem) => void }) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  const handleAdd = () => {
+    addItem(item);
+    scale.value = withSequence(
+      withSpring(1.1, { damping: 10 }),
+      withSpring(1, { damping: 10 })
+    );
+  };
+
+  return (
+    <Animated.View style={[styles.menuCardWrapper, animatedStyle]}>
+      <TouchableOpacity onPress={handleAdd}>
+        <Card style={styles.menuCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.emoji}>{item.emoji || '🍔'}</Text>
+            {item.badge && <Badge label={item.badge} type={item.badge.toLowerCase() as any} />}
+          </View>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.itemPrice}>€{item.price.toFixed(2)}</Text>
+        </Card>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function WaiterMenuScreen() {
   const router = useRouter();
@@ -105,18 +137,7 @@ export default function WaiterMenuScreen() {
         keyExtractor={item => item.id}
         numColumns={2}
         contentContainerStyle={styles.menuGrid}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.menuCardWrapper} onPress={() => addItem(item)}>
-            <Card style={styles.menuCard}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.emoji}>{item.emoji || '🍔'}</Text>
-                {item.badge && <Badge label={item.badge} type={item.badge.toLowerCase() as any} />}
-              </View>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>€{item.price.toFixed(2)}</Text>
-            </Card>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => <MenuItemCard item={item} addItem={addItem} />}
       />
 
       {isCartOpen && (

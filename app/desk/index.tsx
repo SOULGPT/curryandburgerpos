@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Theme } from '../../constants/Theme';
 import { Button } from '../../components/ui/Button';
@@ -30,6 +31,7 @@ interface Table {
 }
 
 export default function DeskScreen() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [revenue, setRevenue] = useState(0);
@@ -158,6 +160,13 @@ export default function DeskScreen() {
             </Card>
           </View>
 
+          <Button 
+            title="Ask C&B AI Assistant" 
+            variant="secondary" 
+            onPress={() => router.push('/ai-chat')}
+            style={styles.aiButton}
+          />
+
           <Text style={[styles.sectionTitle, { marginTop: Theme.spacing.xl }]}>Table Map</Text>
           <ScrollView>
             <View style={styles.tableMap}>
@@ -251,6 +260,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.md,
   },
   statCard: {
     flex: 1,
@@ -266,6 +276,11 @@ const styles = StyleSheet.create({
     fontFamily: Theme.typography.display.fontFamily,
     fontSize: 24,
     color: Theme.colors.darkBrown,
+  },
+  aiButton: {
+    backgroundColor: Theme.colors.darkBrown,
+    borderColor: Theme.colors.amber,
+    borderWidth: 1,
   },
   tableMap: {
     flexDirection: 'row',

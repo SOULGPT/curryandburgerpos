@@ -1,8 +1,11 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { useAuthStore } from '../store/auth';
 import { supabase } from '../lib/supabase';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 export default function RootLayout() {
   const { session, role, isLoading, setSession } = useAuthStore();
@@ -17,7 +20,39 @@ export default function RootLayout() {
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
+
+    registerForPushNotifications();
   }, []);
+
+  async function registerForPushNotifications() {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        return;
+      }
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      
+      // Update profile with token
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ push_token: token }).eq('id', user.id);
+      }
+    }
+  }
 
   useEffect(() => {
     if (isLoading) return;
@@ -52,6 +87,7 @@ export default function RootLayout() {
         <Stack.Screen name="kitchen" options={{ headerShown: false }} />
         <Stack.Screen name="desk" options={{ headerShown: false }} />
         <Stack.Screen name="display" options={{ headerShown: false }} />
+        <Stack.Screen name="ai-chat/index" options={{ title: 'AI Assistant', presentation: 'modal' }} />
       </Stack>
     </SafeAreaProvider>
   );

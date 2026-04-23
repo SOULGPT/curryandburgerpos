@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, Modal, TouchableOpacity, Switch } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { Theme } from '../../../constants/Theme';
@@ -16,6 +17,7 @@ const CATEGORIES = ['burger', 'curry', 'wraps', 'sides', 'drinks', 'desserts'];
 const BADGES = ['None', 'NEW', 'CHEF', 'HOT'];
 
 export default function AdminScreen() {
+  const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [newRoomName, setNewRoomName] = useState('');
 
@@ -195,6 +197,15 @@ export default function AdminScreen() {
             </Card>
           </TouchableOpacity>
         ))}
+
+        <View style={styles.divider} />
+        <Text style={styles.sectionTitle}>AI Management</Text>
+        <Button 
+          title="Open AI Business Consultant" 
+          onPress={() => router.push('/ai-chat')}
+          variant="secondary"
+          style={styles.aiButton}
+        />
       </ScrollView>
 
       {/* MENU ITEM MODAL */}
@@ -312,5 +323,10 @@ const styles = StyleSheet.create({
   chipTextActive: { color: Theme.colors.white },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Theme.spacing.xl, marginTop: Theme.spacing.sm },
   modalFooter: { gap: Theme.spacing.md, paddingBottom: 40 },
-  saveBtn: { marginBottom: Theme.spacing.xs }
+  saveBtn: { marginBottom: Theme.spacing.xs },
+  aiButton: {
+    backgroundColor: Theme.colors.darkBrown,
+    borderColor: Theme.colors.amber,
+    borderWidth: 1,
+  }
 });
