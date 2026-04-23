@@ -15,12 +15,15 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// FALLBACKS: We use these to prevent the app from crashing at startup if env vars are missing.
+// The actual values will be provided by EAS at build time.
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://missing-url.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'missing-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase credentials. The app may crash or fail to function correctly.');
+if (supabaseUrl.includes('missing-url')) {
+  console.warn('CRITICAL: Supabase URL is missing. Check EAS environment variables.');
 }
+
 
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
