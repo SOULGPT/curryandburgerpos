@@ -64,36 +64,23 @@ export default function WaiterMenuScreen() {
   const handleSendOrder = async () => {
     if (items.length === 0) return;
     
-    const { data: order, error: orderError } = await supabase.from('orders').insert({
-      table_id: tableId,
-      service_type: serviceType,
-      status: 'pending',
-      waiter_id: session?.user?.id,
-      total_amount: getCartTotal(),
-    }).select().single();
-
-    if (orderError || !order) {
-      Alert.alert('Error', 'Failed to create order');
-      return;
-    }
-
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      menu_item_id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-    }));
-
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+    const { data: orderId, error } = await supabase.rpc('create_order_with_items', {
+      p_table_id: tableId,
+      p_service_type: serviceType,
+      p_waiter_id: session?.user?.id,
+      p_total_amount: getCartTotal(),
+      p_items: items.map(item => ({
+        menu_item_id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      }))
+    });
     
-    if (itemsError) {
-      Alert.alert('Error', 'Failed to add items to order');
+    if (error) {
+      console.error('Order Error:', error);
+      Alert.alert('Error', 'Failed to send order: ' + error.message);
       return;
-    }
-
-    if (tableId) {
-      await supabase.from('tables').update({ status: 'occupied' }).eq('id', tableId);
     }
 
     clearCart();
@@ -101,8 +88,11 @@ export default function WaiterMenuScreen() {
     router.back();
   };
 
+
+
   const filteredMenu = menuItems.filter(item => item.category === activeCategory);
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+
 
   return (
     <View style={styles.container}>

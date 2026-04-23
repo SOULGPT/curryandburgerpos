@@ -27,7 +27,18 @@ export default function WaiterTableScreen() {
 
   useEffect(() => {
     fetchRoomsAndTables();
+
+    // Enable Realtime for tables
+    const channel = supabase
+      .channel('waiter:tables')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, fetchRoomsAndTables)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
 
   const fetchRoomsAndTables = async () => {
     const { data: roomsData } = await supabase.from('rooms').select('*').order('sort_order');

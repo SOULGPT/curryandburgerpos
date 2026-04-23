@@ -11,15 +11,30 @@ DROP TABLE IF EXISTS tables CASCADE;
 DROP TABLE IF EXISTS rooms CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
--- 1. Create Profiles Table
 CREATE TABLE profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role text CHECK (role IN ('admin', 'waiter', 'kitchen', 'desk', 'display')),
+  role text CHECK (role IN ('admin', 'waiter', 'kitchen', 'desk', 'display')) DEFAULT 'waiter',
   full_name text,
   avatar_url text,
   push_token text,
   created_at timestamptz DEFAULT now()
 );
+
+-- Function to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, avatar_url, role)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', COALESCE(new.raw_user_meta_data->>'role', 'waiter'));
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to run the function on every signup
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 
 -- 2. Create Rooms Table
 CREATE TABLE rooms (
@@ -120,8 +135,10 @@ INSERT INTO menu_items (category, name, emoji, price, badge) VALUES
   ('drinks', 'Mango Lassi', '🥛', 4.50, 'NEW');
 
 -- =======================================================
--- SECURITY / ACCESS (RLS)
+-- 12. SECURITY / ACCESS (RLS) - PRODUCTION READY
 -- =======================================================
+
+-- Enable RLS on all tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tables ENABLE ROW LEVEL SECURITY;
@@ -130,10 +147,99 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public Access" ON profiles FOR ALL USING (true);
-CREATE POLICY "Public Access" ON rooms FOR ALL USING (true);
-CREATE POLICY "Public Access" ON tables FOR ALL USING (true);
-CREATE POLICY "Public Access" ON menu_items FOR ALL USING (true);
-CREATE POLICY "Public Access" ON orders FOR ALL USING (true);
-CREATE POLICY "Public Access" ON order_items FOR ALL USING (true);
-CREATE POLICY "Public Access" ON ai_conversations FOR ALL USING (true);
+-- 12.1 PROFILES POLICIES
+-- Everyone can read profiles (to see names/avatars)
+CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+-- Users can only update their own profile
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- 12.2 MENU ITEMS POLICIES
+-- Everyone can view available items
+CREATE POLICY "Menu is viewable by everyone" ON menu_items FOR SELECT USING (available = true);
+-- Only admins can manage menu
+CREATE POLICY "Admins can manage menu" ON menu_items FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- 12.3 ROOMS & TABLES POLICIES
+-- Everyone can view rooms/tables
+CREATE POLICY "Rooms/Tables viewable by everyone" ON rooms FOR SELECT USING (true);
+CREATE POLICY "Rooms/Tables viewable by everyone" ON tables FOR SELECT USING (true);
+-- Staff can update table status
+CREATE POLICY "Staff can update tables" ON tables FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk', 'kitchen'))
+);
+
+-- 12.4 ORDERS & ORDER ITEMS POLICIES
+-- Staff can view all orders
+CREATE POLICY "Staff can view all orders" ON orders FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk', 'kitchen', 'display'))
+);
+CREATE POLICY "Staff can view all order items" ON order_items FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk', 'kitchen'))
+);
+
+-- Waiters and Admin can create orders
+CREATE POLICY "Staff can create orders" ON orders FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk'))
+);
+CREATE POLICY "Staff can add order items" ON order_items FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk'))
+);
+
+-- Staff can update orders (for status changes)
+CREATE POLICY "Staff can update orders" ON orders FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'waiter', 'desk', 'kitchen'))
+);
+
+-- 12.5 AI CONVERSATIONS
+CREATE POLICY "Users can manage own AI chat" ON ai_conversations FOR ALL USING (auth.uid() = user_id);
+
+-- =======================================================
+-- 13. ATOMIC ORDER CREATION (Stored Procedure)
+-- =======================================================
+-- This prevents "ghost orders" where the order is created but items fail
+CREATE OR REPLACE FUNCTION create_order_with_items(
+  p_table_id int,
+  p_service_type text,
+  p_waiter_id uuid,
+  p_total_amount numeric,
+  p_items jsonb
+) RETURNS uuid AS $$
+DECLARE
+  v_order_id uuid;
+  v_item jsonb;
+BEGIN
+  -- 1. Create the order
+  INSERT INTO orders (table_id, service_type, waiter_id, total_amount, status)
+  VALUES (p_table_id, p_service_type, p_waiter_id, p_total_amount, 'pending')
+  RETURNING id INTO v_order_id;
+
+  -- 2. Create the items
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  LOOP
+    INSERT INTO order_items (order_id, menu_item_id, name, price, quantity)
+    VALUES (
+      v_order_id, 
+      (v_item->>'menu_item_id')::uuid, 
+      v_item->>'name', 
+      (v_item->>'price')::numeric, 
+      (v_item->>'quantity')::int
+    );
+  END LOOP;
+
+  -- 3. Update table status if applicable
+  IF p_table_id IS NOT NULL THEN
+    UPDATE tables SET status = 'occupied' WHERE id = p_table_id;
+  END IF;
+
+  RETURN v_order_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =======================================================
+-- 14. REALTIME ENABLEMENT (Refresh)
+-- =======================================================
+DROP PUBLICATION IF EXISTS supabase_realtime;
+CREATE PUBLICATION supabase_realtime FOR TABLE orders, order_items, tables, menu_items, profiles;
+

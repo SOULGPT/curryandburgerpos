@@ -56,6 +56,7 @@ export default function DeskScreen() {
   }, []);
 
   const fetchData = async () => {
+    // 1. Fetch Active Orders (not yet served)
     const { data: activeOrders } = await supabase
       .from('orders')
       .select('*, order_items(*)')
@@ -64,13 +65,15 @@ export default function DeskScreen() {
     
     if (activeOrders) setOrders(activeOrders as Order[]);
 
-    // Calculate today's revenue from served orders
-    const today = new Date().toISOString().split('T')[0];
+    // 2. Calculate today's revenue (from 00:00 of the current day in local time)
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    
     const { data: servedOrders } = await supabase
       .from('orders')
       .select('total_amount')
       .eq('status', 'served')
-      .gte('created_at', today);
+      .gte('created_at', startOfDay);
 
     if (servedOrders) {
       const total = servedOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
@@ -79,6 +82,7 @@ export default function DeskScreen() {
 
     fetchTables();
   };
+
 
   const fetchTables = async () => {
     const { data } = await supabase.from('tables').select('*').order('id');
