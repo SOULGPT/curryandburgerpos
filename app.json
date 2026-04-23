@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "cb-manager",
-    "slug": "cb-manager",
+    "name": "curryandburgerpos",
+    "slug": "curryandburgerpos",
+    "owner": "eidenaks-organization",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,6 +26,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9e429692-75a4-424a-bfc9-02ce3b3d07eb"
+      }
     }
   }
 }
