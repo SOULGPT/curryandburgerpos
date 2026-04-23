@@ -18,16 +18,20 @@ const withFollyFix = (config) => {
         end
       end
     end
-    # --- C&B FOLLY FIX END ---`;
+    # --- C&B FOLLY FIX END ---
+`;
 
       if (!podfileContent.includes("C&B FOLLY FIX")) {
-        // Insert before the final 'end' of the post_install block
+        // Use a regex to find the post_install block and insert the patch before its closing 'end'
         podfileContent = podfileContent.replace(
-          /react_native_post_install\(.*?\)/s,
-          `$& \n${patch}`
+          /(post_install do \|installer\|.*?)(^\s*end)/ms,
+          (match, p1, p2) => {
+            return p1 + patch + p2;
+          }
         );
+        
         fs.writeFileSync(podfilePath, podfileContent);
-        console.log('✅ Successfully patched Podfile with Folly Fix');
+        console.log('✅ Successfully patched Podfile with Folly Fix (Precise Regex)');
       }
 
       return config;
