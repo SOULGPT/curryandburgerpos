@@ -1,9 +1,17 @@
 -- =======================================================
--- CURRY & BURGER MANAGER - SUPABASE SCHEMA
--- Paste this entirely into the Supabase SQL Editor
+-- CURRY & BURGER MANAGER - FRESH RESET SETUP
 -- =======================================================
 
--- 1. Create Profiles Table (extends auth.users)
+-- 0. CLEAN RESET (Deletes old tables to prevent errors)
+DROP TABLE IF EXISTS ai_conversations CASCADE;
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS menu_items CASCADE;
+DROP TABLE IF EXISTS tables CASCADE;
+DROP TABLE IF EXISTS rooms CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
+-- 1. Create Profiles Table
 CREATE TABLE profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role text CHECK (role IN ('admin', 'waiter', 'kitchen', 'desk', 'display')),
@@ -88,26 +96,20 @@ CREATE TABLE ai_conversations (
 -- =======================================================
 -- REALTIME ENABLEMENT
 -- =======================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE tables;
-ALTER PUBLICATION supabase_realtime ADD TABLE menu_items;
+-- This allows the app to listen for live changes
+DROP PUBLICATION IF EXISTS supabase_realtime;
+CREATE PUBLICATION supabase_realtime FOR TABLE orders, order_items, tables, menu_items;
 
 -- =======================================================
--- SEED DATA (Default Rooms and Tables)
+-- SEED DATA (Ready to use immediately)
 -- =======================================================
 INSERT INTO rooms (name, sort_order) VALUES ('Ground Floor', 1), ('Terrace', 2);
 
--- Insert 10 tables for Room 1
 INSERT INTO tables (label, room_id, status) VALUES 
   ('1', 1, 'free'), ('2', 1, 'free'), ('3', 1, 'free'), ('4', 1, 'free'), ('5', 1, 'free'),
-  ('6', 1, 'free'), ('7', 1, 'free'), ('8', 1, 'free'), ('9', 1, 'free'), ('10', 1, 'free');
-
--- Insert 5 tables for Room 2 (Terrace)
-INSERT INTO tables (label, room_id, status) VALUES 
+  ('6', 1, 'free'), ('7', 1, 'free'), ('8', 1, 'free'), ('9', 1, 'free'), ('10', 1, 'free'),
   ('T1', 2, 'free'), ('T2', 2, 'free'), ('T3', 2, 'free'), ('T4', 2, 'free'), ('T5', 2, 'free');
 
--- Insert Seed Menu Items
 INSERT INTO menu_items (category, name, emoji, price, badge) VALUES 
   ('burger', 'The Ember Burger', '🔥', 12.50, 'CHEF'),
   ('burger', 'Cheese & Burger Classic', '🍔', 9.50, ''),
@@ -118,23 +120,8 @@ INSERT INTO menu_items (category, name, emoji, price, badge) VALUES
   ('drinks', 'Mango Lassi', '🥛', 4.50, 'NEW');
 
 -- =======================================================
--- AUTOMATIC TIMESTAMPS
+-- SECURITY / ACCESS (RLS)
 -- =======================================================
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_tables_modtime BEFORE UPDATE ON tables FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
-CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
-
--- =======================================================
--- SECURITY / ROW LEVEL SECURITY (RLS)
--- =======================================================
--- Enable RLS on all tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tables ENABLE ROW LEVEL SECURITY;
@@ -143,12 +130,10 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 
--- Disable RLS for now during development phase to prevent connection blockers
--- (You can re-enable and restrict later when deploying to production)
-CREATE POLICY "Allow all operations for profiles" ON profiles FOR ALL USING (true);
-CREATE POLICY "Allow all operations for rooms" ON rooms FOR ALL USING (true);
-CREATE POLICY "Allow all operations for tables" ON tables FOR ALL USING (true);
-CREATE POLICY "Allow all operations for menu_items" ON menu_items FOR ALL USING (true);
-CREATE POLICY "Allow all operations for orders" ON orders FOR ALL USING (true);
-CREATE POLICY "Allow all operations for order_items" ON order_items FOR ALL USING (true);
-CREATE POLICY "Allow all operations for ai_conversations" ON ai_conversations FOR ALL USING (true);
+CREATE POLICY "Public Access" ON profiles FOR ALL USING (true);
+CREATE POLICY "Public Access" ON rooms FOR ALL USING (true);
+CREATE POLICY "Public Access" ON tables FOR ALL USING (true);
+CREATE POLICY "Public Access" ON menu_items FOR ALL USING (true);
+CREATE POLICY "Public Access" ON orders FOR ALL USING (true);
+CREATE POLICY "Public Access" ON order_items FOR ALL USING (true);
+CREATE POLICY "Public Access" ON ai_conversations FOR ALL USING (true);
