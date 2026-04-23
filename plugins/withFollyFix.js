@@ -15,7 +15,7 @@ const withFollyFix = (config) => {
       if ['RCT-Folly', 'RNReanimated', 'React-Core', 'React-RCTFabric'].include?(target.name)
         target.build_configurations.each do |config|
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_HAS_COROUTINES=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES'
           
           config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ' +
             '"$(PODS_ROOT)/Headers/Public/RCT-Folly" ' +
