@@ -15,8 +15,13 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Missing Supabase credentials. The app may crash or fail to function correctly.');
+}
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

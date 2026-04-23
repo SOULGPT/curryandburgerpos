@@ -1,11 +1,16 @@
 import Groq from 'groq-sdk';
 
-const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
+const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? '';
+
+if (!apiKey) {
+  console.warn('Missing EXPO_PUBLIC_GROQ_API_KEY. AI features will not work.');
+}
 
 const groq = new Groq({
-  apiKey: apiKey,
+  apiKey: apiKey || 'missing-key',
   dangerouslyAllowBrowser: true // Necessary for client-side Expo usage
 });
+
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
