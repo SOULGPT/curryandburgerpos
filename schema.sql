@@ -81,7 +81,8 @@ CREATE TABLE ai_conversations (
   user_id uuid REFERENCES profiles(id),
   messages jsonb,
   session_date date DEFAULT CURRENT_DATE,
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, session_date)
 );
 
 -- =======================================================
@@ -105,6 +106,30 @@ INSERT INTO tables (label, room_id, status) VALUES
 -- Insert 5 tables for Room 2 (Terrace)
 INSERT INTO tables (label, room_id, status) VALUES 
   ('T1', 2, 'free'), ('T2', 2, 'free'), ('T3', 2, 'free'), ('T4', 2, 'free'), ('T5', 2, 'free');
+
+-- Insert Seed Menu Items
+INSERT INTO menu_items (category, name, emoji, price, badge) VALUES 
+  ('burger', 'The Ember Burger', '🔥', 12.50, 'CHEF'),
+  ('burger', 'Cheese & Burger Classic', '🍔', 9.50, ''),
+  ('burger', 'Truffle Magic', '🍄', 14.00, 'NEW'),
+  ('curry', 'Paneer Butter Masala', '🥘', 11.00, ''),
+  ('curry', 'Chicken Tikka Curry', '🍗', 13.50, 'HOT'),
+  ('sides', 'Truffle Fries', '🍟', 5.50, 'HOT'),
+  ('drinks', 'Mango Lassi', '🥛', 4.50, 'NEW');
+
+-- =======================================================
+-- AUTOMATIC TIMESTAMPS
+-- =======================================================
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_tables_modtime BEFORE UPDATE ON tables FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 
 -- =======================================================
 -- SECURITY / ROW LEVEL SECURITY (RLS)

@@ -31,8 +31,19 @@ export default function AIChatScreen() {
 
     const response = await AIService.chat(newMessages, context);
     
-    setMessages([...newMessages, { role: 'assistant', content: response }]);
+    const finalMessages: ChatMessage[] = [...newMessages, { role: 'assistant', content: response }];
+    setMessages(finalMessages);
     setIsLoading(false);
+
+    // Persist to Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('ai_conversations').upsert({
+        user_id: user.id,
+        messages: finalMessages,
+        session_date: new Date().toISOString().split('T')[0]
+      }, { onConflict: 'user_id,session_date' });
+    }
   };
 
   const quickPrompts = [
