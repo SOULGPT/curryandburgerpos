@@ -12,9 +12,17 @@ const withFollyFix = (config) => {
       const patch = `
     # --- C&B FOLLY FIX START ---
     installer.pods_project.targets.each do |target|
-      if target.name == 'RCT-Folly'
+      if ['RCT-Folly', 'RNReanimated', 'React-Core', 'React-RCTFabric'].include?(target.name)
         target.build_configurations.each do |config|
-          config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) "$(PODS_TARGET_SRCROOT)" "$(PODS_ROOT)/Headers/Public/RCT-Folly"'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_HAS_COROUTINES=0'
+          
+          config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ' +
+            '"$(PODS_ROOT)/Headers/Public/RCT-Folly" ' +
+            '"$(PODS_ROOT)/Headers/Public/DoubleConversion" ' +
+            '"$(PODS_ROOT)/Headers/Public/glog" ' +
+            '"$(PODS_ROOT)/Headers/Public/fmt" ' +
+            '"$(PODS_TARGET_SRCROOT)"'
         end
       end
     end
