@@ -1,11 +1,7 @@
-const { withDangerousMod, withPlugins } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-/**
- * This plugin patches the Podfile to fix the 'folly/coro/Coroutine.h' not found error
- * which occurs in some Reanimated 3 + New Arch/Classic Arch mixed environments.
- */
 const withFollyFix = (config) => {
   return withDangerousMod(config, [
     'ios',
@@ -14,20 +10,24 @@ const withFollyFix = (config) => {
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
       const patch = `
+    # --- C&B FOLLY FIX START ---
     installer.pods_project.targets.each do |target|
       if target.name == 'RCT-Folly'
         target.build_configurations.each do |config|
           config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) "$(PODS_TARGET_SRCROOT)" "$(PODS_ROOT)/Headers/Public/RCT-Folly"'
         end
       end
-    end`;
+    end
+    # --- C&B FOLLY FIX END ---`;
 
-      if (!podfileContent.includes("target.name == 'RCT-Folly'")) {
+      if (!podfileContent.includes("C&B FOLLY FIX")) {
+        // Insert before the final 'end' of the post_install block
         podfileContent = podfileContent.replace(
-          /react_native_post_install\(.*?installer,.*?config\[:reactNativePath\].*?\)/s,
+          /react_native_post_install\(.*?\)/s,
           `$& \n${patch}`
         );
         fs.writeFileSync(podfilePath, podfileContent);
+        console.log('✅ Successfully patched Podfile with Folly Fix');
       }
 
       return config;
