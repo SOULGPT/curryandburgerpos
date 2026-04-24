@@ -1,28 +1,45 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, Text, Button } from 'react-native';
 import { useAuthStore } from '../store/auth';
 import { supabase } from '../lib/supabase';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
+
 export default function RootLayout() {
   const { session, role, isLoading, setSession } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function initApp() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+      } catch (e: any) {
+        console.error('Initialization Error:', e);
+        setError(e.message);
+      }
+    }
+
+    initApp();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    registerForPushNotifications().catch(err => {
+      console.warn('Push Notification Setup Failed:', err);
     });
 
-    registerForPushNotifications();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
 
   async function registerForPushNotifications() {
     if (Platform.OS === 'android') {
@@ -79,6 +96,18 @@ export default function RootLayout() {
     }
   }, [session, role, isLoading, segments]);
 
+  if (error) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#ff4444', marginBottom: 10 }}>Startup Error</Text>
+          <Text style={{ textAlign: 'center', color: '#666' }}>{error}</Text>
+          <Button title="Try Again" onPress={() => setError(null)} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }}>
@@ -92,3 +121,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+
