@@ -2,7 +2,9 @@
   "expo": {
     "name": "curryandburgerpos",
     "slug": "curryandburgerpos",
+    "scheme": "com.eidenaksorganization.curryandburgerpos",
     "owner": "eidenaks-organization",
+
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
