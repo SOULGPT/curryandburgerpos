@@ -42,8 +42,8 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-secure-store",
-      "./plugins/withFollyFix"
+      "expo-secure-store"
     ]
+
   }
 }
