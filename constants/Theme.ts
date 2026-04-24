@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const Theme = {
   colors: {
     primaryOrange: '#E8500A',
@@ -14,26 +16,33 @@ export const Theme = {
   },
   typography: {
     display: {
-      fontFamily: 'FredokaOne-Regular',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
       fontSize: 32,
+      fontWeight: '800',
     },
     heading: {
-      fontFamily: 'Nunito-ExtraBold',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
       fontSize: 22,
+      fontWeight: '700',
     },
     body: {
-      fontFamily: 'Nunito-SemiBold',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
       fontSize: 16,
+      fontWeight: '500',
     },
     label: {
-      fontFamily: 'Nunito-Bold',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
       fontSize: 12,
+      fontWeight: '600',
     },
+
     price: {
-      fontFamily: 'Nunito-ExtraBold',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
       fontSize: 16,
+      fontWeight: '800',
       color: '#E8500A',
     },
+
   },
   radius: {
     sm: 8,

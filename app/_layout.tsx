@@ -1,22 +1,32 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Platform, View, Text, Button } from 'react-native';
 import { useAuthStore } from '../store/auth';
 import { supabase } from '../lib/supabase';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* reloading the app might cause this error. */
+});
 
 export default function RootLayout() {
   const { session, role, isLoading, setSession } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const [appIsReady, setAppIsReady] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     async function initApp() {
       try {
+        // Load fonts or other assets here
+        await Font.loadAsync({});
+
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
       } catch (e: any) {
@@ -25,7 +35,10 @@ export default function RootLayout() {
       }
     }
 
-    initApp();
+    initApp().then(() => {
+      setAppIsReady(true);
+    });
+
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
@@ -96,12 +109,22 @@ export default function RootLayout() {
     }
   }, [session, role, isLoading, segments]);
 
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady && !error) {
+    return null;
+  }
+
   if (error) {
     return (
-      <SafeAreaProvider>
+      <SafeAreaProvider onLayout={onLayoutRootView}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
           <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#ff4444', marginBottom: 10 }}>Startup Error</Text>
-          <Text style={{ textAlign: 'center', color: '#666' }}>{error}</Text>
+          <Text style={{ textAlign: 'center', color: '#666', marginBottom: 20 }}>{error}</Text>
           <Button title="Try Again" onPress={() => setError(null)} />
         </View>
       </SafeAreaProvider>
@@ -109,7 +132,7 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={onLayoutRootView}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -121,5 +144,6 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
 
 
