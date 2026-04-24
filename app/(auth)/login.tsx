@@ -20,6 +20,26 @@ export default function LoginScreen() {
     setLoading(false);
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: Platform.OS === 'ios' ? 'com.eidenaksorganization.curryandburgerpos://' : undefined,
+      },
+    });
+    if (error) Alert.alert('Error', error.message);
+  };
+
+  const signInWithApple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: Platform.OS === 'ios' ? 'com.eidenaksorganization.curryandburgerpos://' : undefined,
+      },
+    });
+    if (error) Alert.alert('Error', error.message);
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -27,7 +47,7 @@ export default function LoginScreen() {
     >
       <View style={styles.content}>
         <Text style={styles.logo}>C&B</Text>
-        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.title}>Manager Login</Text>
         
         <View style={styles.form}>
           <TextInput
@@ -53,11 +73,32 @@ export default function LoginScreen() {
             loading={loading}
             style={styles.button}
           />
+
+          <View style={styles.divider}>
+            <View style={styles.line} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.line} />
+          </View>
+
+          <Button 
+            title="Continue with Apple" 
+            onPress={signInWithApple} 
+            variant="secondary"
+            style={styles.socialButton}
+          />
+          <Button 
+            title="Continue with Google" 
+            onPress={signInWithGoogle} 
+            variant="secondary"
+            style={styles.socialButton}
+          />
+
         </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -97,5 +138,25 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: Theme.spacing.md,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Theme.spacing.lg,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  dividerText: {
+    color: 'rgba(255,255,255,0.5)',
+    paddingHorizontal: Theme.spacing.md,
+    fontFamily: Theme.typography.label.fontFamily,
+    fontSize: 12,
+  },
+  socialButton: {
+    borderColor: 'rgba(255,255,255,0.3)',
   }
 });
+
