@@ -31,10 +31,10 @@ export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   tableId: null,
   serviceType: 'tavolo',
-  
+
   setTableId: (id) => set({ tableId: id }),
   setServiceType: (type) => set({ serviceType: type }),
-  
+
   addItem: (item) => {
     const { items } = get();
     const existing = items.find((i) => i.id === item.id);
@@ -44,11 +44,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({ items: [...items, { ...item, quantity: 1 }] });
     }
   },
-  
+
   removeItem: (itemId) => {
     set({ items: get().items.filter((i) => i.id !== itemId) });
   },
-  
+
   updateQuantity: (itemId, delta) => {
     set({
       items: get().items.map((i) => {
@@ -60,9 +60,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       }).filter((i) => i.quantity > 0)
     });
   },
-  
-  clearCart: () => set({ items: [], tableId: null, serviceType: 'tavolo' }),
-  
+
+  // Only clear items — preserve tableId and serviceType so the waiter can
+  // quickly place another order for the same table without re-selecting.
+  clearCart: () => set({ items: [] }),
+
   getCartTotal: () => {
     return get().items.reduce((total, item) => total + (item.price * item.quantity), 0);
   }
