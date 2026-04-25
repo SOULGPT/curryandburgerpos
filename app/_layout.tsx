@@ -163,16 +163,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider onLayout={onLayoutRootView}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)"        options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)"        options={{ headerShown: false }} />
-          <Stack.Screen name="kitchen"       options={{ headerShown: false }} />
-          <Stack.Screen name="desk"          options={{ headerShown: false }} />
-          <Stack.Screen name="display"       options={{ headerShown: false }} />
-          <Stack.Screen name="ai-chat/index" options={{ title: 'AI Assistant', presentation: 'modal' }} />
-        </Stack>
-      </SafeAreaProvider>
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <SafeAreaProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)"        options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)"        options={{ headerShown: false }} />
+            <Stack.Screen name="kitchen"       options={{ headerShown: false }} />
+            <Stack.Screen name="desk"          options={{ headerShown: false }} />
+            <Stack.Screen name="display"       options={{ headerShown: false }} />
+            <Stack.Screen name="ai-chat/index" options={{ title: 'AI Assistant', presentation: 'modal' }} />
+          </Stack>
+        </SafeAreaProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }
