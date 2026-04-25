@@ -126,40 +126,38 @@ export default function RootLayout() {
 
   // ── Splash screen hide ───────────────────────────────────────────────────
   const onLayoutRootView = useCallback(() => {
-    if (appIsReady) {
+    if (appIsReady || error) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [appIsReady]);
-
-  // Hold render until ready
-  if (!appIsReady) return null;
+  }, [appIsReady, error]);
 
   // ── Error fallback ───────────────────────────────────────────────────────
-  if (error) {
+  if (error && appIsReady) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <View
-            onLayout={onLayoutRootView}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A0A00', padding: 24 }}
+        <View
+          onLayout={onLayoutRootView}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A0A00', padding: 24 }}
+        >
+          <Text style={{ fontSize: 28, fontWeight: '800', color: '#E8500A', marginBottom: 8 }}>
+            Connection Error
+          </Text>
+          <Text style={{ textAlign: 'center', color: '#ccc', marginBottom: 24, lineHeight: 22 }}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            onPress={() => { setError(null); setAppIsReady(false); }}
+            style={{ backgroundColor: '#E8500A', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 }}
           >
-            <Text style={{ fontSize: 28, fontWeight: '800', color: '#E8500A', marginBottom: 8 }}>
-              Startup Error
-            </Text>
-            <Text style={{ textAlign: 'center', color: '#ccc', marginBottom: 24, lineHeight: 22 }}>
-              {error}
-            </Text>
-            <TouchableOpacity
-              onPress={() => { setError(null); setAppIsReady(false); }}
-              style={{ backgroundColor: '#E8500A', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaProvider>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </GestureHandlerRootView>
     );
   }
+
+  // Hold render until ready (but AFTER we check for error)
+  if (!appIsReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
